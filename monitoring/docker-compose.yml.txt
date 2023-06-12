@@ -1,0 +1,63 @@
+version: '3.1'
+
+services:
+
+  prometheus:
+    image: prom/prometheus:v2.43.0
+    volumes:
+      - ./prometheus/prometheus_config:/etc/prometheus/
+      - ./prometheus/prometheus_data:/prometheus
+    command:
+      - '--config.file=/etc/prometheus/prometheus.yml'
+      - '--storage.tsdb.path=/prometheus'
+      - '--web.console.libraries=/usr/share/prometheus/console_libraries'
+      - '--web.console.templates=/usr/share/prometheus/consoles'
+    ports:
+      - 9090:9090
+    restart: always
+
+  alertmanager:
+    image: prom/alertmanager:v0.25.0
+    volumes:
+      - ./alertmanager/:/etc/alertmanager/
+    command:
+      - '--config.file=/etc/alertmanager/config.yml'
+      - '--storage.path=/alertmanager'
+    ports:
+      - 9093:9093
+    restart: always
+
+  grafana:
+    image: grafana/grafana:9.4.7
+    ports:
+      - 3000:3000
+    volumes:
+      - ./grafana/data:/var/lib/grafana
+    restart: always
+
+  alerta-web:
+    image: alerta/alerta-web:9.0.0
+    ports:
+      - 8080:8080
+    depends_on:
+      - alerta-db
+    environment:
+      - DEBUG=1  # remove this line to turn DEBUG off
+      - DATABASE_URL=postgres://postgres:postgres@alerta-db:5432/monitoring
+      - AUTH_REQUIRED=True
+      - ADMIN_USERS=admin@alerta.io,devops@alerta.io #default password: alerta
+      - PLUGINS=reject,blackout,normalise,enhance
+      - ADMIN_KEY=demo-key
+      - ALERTMANAGER_API_URL=http://alertmanager:9093
+    restart: always
+
+
+  alerta-db:
+    image: postgres:15
+    volumes:
+      - ./alerta-db/alerta-db-data/pg-data:/var/lib/postgresql/data
+    environment:
+      POSTGRES_DB: monitoring
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+    restart: always

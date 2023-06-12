@@ -1,0 +1,15 @@
+version: '3'
+services:
+  vscode:
+    image: codercom/code-server
+    volumes:
+      # Set <project dir> to the directory you want to open in VS Code.
+      - /root/docker:/home/coder/project/
+      # <vs code config> should point to a local dir where vs code stores its data.
+      - /root/docker/vscode/config/:/home/coder/.local/share/code-server/
+    ports:
+      - "8443:8443"
+    command: code-server --auth password --port 8443 --disable-telemetry /home/coder/project
+    environment:
+      PASSWORD: pass123
+    restart: unless-stopped
